@@ -146,6 +146,24 @@ run_native_or_gap conformance/native/pass/rescue-check.0 .zero/native-test/rescu
 run_native_or_gap conformance/native/pass/std-fs-fallible.0 .zero/native-test/std-fs-fallible "fs named errors ok"
 run_native_or_gap conformance/native/pass/std-fs-fallible-resources.0 .zero/native-test/std-fs-fallible-resources "fs fallible resources ok"
 run_native_or_gap conformance/native/pass/std-cli-helpers.0 .zero/native-test/std-cli-helpers "cli helpers ok"
+std_args_run_output="$(bin/zero run conformance/native/pass/std-args.0 -- agent-arg extra)"
+if [[ "$std_args_run_output" != "agent-arg" ]]; then
+  echo "zero run output mismatch for conformance/native/pass/std-args.0" >&2
+  echo "native:   $std_args_run_output" >&2
+  echo "expected: agent-arg" >&2
+  exit 1
+fi
+bin/zero build --json --emit exe --target linux-musl-x64 conformance/native/pass/std-args.0 --out .zero/native-test/std-args > .zero/native-test/std-args.json
+grep -q '"path":"direct-elf64-exe"' .zero/native-test/std-args.json
+if [ "$(uname -s)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ]; then
+  std_args_output="$(.zero/native-test/std-args agent-arg extra)"
+  if [[ "$std_args_output" != "agent-arg" ]]; then
+    echo "native output mismatch for conformance/native/pass/std-args.0" >&2
+    echo "native:   $std_args_output" >&2
+    echo "expected: agent-arg" >&2
+    exit 1
+  fi
+fi
 
 bin/zero check conformance/native/pass/std-env.0 >/dev/null
 

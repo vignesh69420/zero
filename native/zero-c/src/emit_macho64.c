@@ -366,6 +366,10 @@ static void macho_emit_mov_w(ZBuf *text, unsigned dst, unsigned src) {
   append_u32le(text, 0x2a0003e0u | ((src & 31u) << 16) | (dst & 31u));
 }
 
+static void macho_emit_mov_x(ZBuf *text, unsigned dst, unsigned src) {
+  append_u32le(text, 0xaa0003e0u | ((src & 31u) << 16) | (dst & 31u));
+}
+
 static void macho_emit_add_x_imm(ZBuf *text, unsigned dst, unsigned src, unsigned imm) {
   append_u32le(text, 0x91000000u | ((imm & 0xfffu) << 10) | ((src & 31u) << 5) | (dst & 31u));
 }
@@ -443,6 +447,10 @@ static void macho_emit_cmp_w(ZBuf *text, unsigned lhs, unsigned rhs) {
 
 static void macho_emit_ldrb_w(ZBuf *text, unsigned dst, unsigned base) {
   append_u32le(text, 0x39400000u | ((base & 31u) << 5) | (dst & 31u));
+}
+
+static void macho_emit_ldr_x_imm(ZBuf *text, unsigned dst, unsigned base, unsigned byte_offset) {
+  append_u32le(text, 0xf9400000u | (((byte_offset / 8u) & 0xfffu) << 10) | ((base & 31u) << 5) | (dst & 31u));
 }
 
 static void macho_emit_strb_w(ZBuf *text, unsigned src, unsigned base) {
@@ -775,6 +783,35 @@ static bool macho_emit_value_to_reg(ZBuf *text, const IrFunction *fun, const IrV
       macho_emit_load_local_w(text, fun, reg, value->local_index, 0, frame_size);
       return true;
     case IR_VALUE_BINARY:
+      if (value->binary_op == IR_BIN_AND) {
+        if (!macho_emit_value_to_reg(text, fun, value->left, reg, frame_size, ctx, diag)) return false;
+        size_t left_false = macho_emit_cbz_w_placeholder(text, reg);
+        if (!macho_emit_value_to_reg(text, fun, value->right, reg, frame_size, ctx, diag)) return false;
+        size_t right_false = macho_emit_cbz_w_placeholder(text, reg);
+        macho_emit_movz_w(text, reg, 1);
+        size_t end_patch = macho_emit_b_placeholder(text);
+        macho_patch_cond19(text, left_false, text->len);
+        macho_patch_cond19(text, right_false, text->len);
+        macho_emit_movz_w(text, reg, 0);
+        macho_patch_branch26(text, end_patch, text->len);
+        return true;
+      }
+      if (value->binary_op == IR_BIN_OR) {
+        if (!macho_emit_value_to_reg(text, fun, value->left, reg, frame_size, ctx, diag)) return false;
+        size_t eval_right = macho_emit_cbz_w_placeholder(text, reg);
+        macho_emit_movz_w(text, reg, 1);
+        size_t left_true_end = macho_emit_b_placeholder(text);
+        macho_patch_cond19(text, eval_right, text->len);
+        if (!macho_emit_value_to_reg(text, fun, value->right, reg, frame_size, ctx, diag)) return false;
+        size_t right_false = macho_emit_cbz_w_placeholder(text, reg);
+        macho_emit_movz_w(text, reg, 1);
+        size_t right_true_end = macho_emit_b_placeholder(text);
+        macho_patch_cond19(text, right_false, text->len);
+        macho_emit_movz_w(text, reg, 0);
+        macho_patch_branch26(text, left_true_end, text->len);
+        macho_patch_branch26(text, right_true_end, text->len);
+        return true;
+      }
       if (value->binary_op != IR_BIN_ADD && value->binary_op != IR_BIN_SUB && value->binary_op != IR_BIN_MUL) return macho_diag_at(diag, "direct AArch64 Mach-O binary operator is unsupported", value->line, value->column, "unsupported operator");
       if (!macho_emit_value_to_reg(text, fun, value->left, 8, frame_size, ctx, diag)) return false;
       if (!macho_emit_value_to_reg(text, fun, value->right, 9, frame_size, ctx, diag)) return false;
@@ -820,6 +857,9 @@ static bool macho_emit_value_to_reg(ZBuf *text, const IrFunction *fun, const IrV
       macho_patch_branch26(text, end_patch, text->len);
       return true;
     }
+    case IR_VALUE_ARGS_LEN:
+      macho_emit_mov_w(text, reg, 20);
+      return true;
     case IR_VALUE_MEMORY_PEEK_U8:
       if (!macho_emit_value_to_reg(text, fun, value->left, 8, frame_size, ctx, diag)) return false;
       macho_emit_ldrb_w(text, reg, 8);
@@ -925,6 +965,38 @@ static bool macho_emit_world_write(ZBuf *text, const IrFunction *fun, const IrIn
   return true;
 }
 
+static bool macho_emit_args_get_to_local(ZBuf *text, const IrFunction *fun, const IrValue *value, const IrLocal *local, unsigned frame_size, MachOEmitContext *ctx, ZDiag *diag) {
+  if (!value || !value->left) return macho_diag_at(diag, "direct AArch64 Mach-O std.args.get requires an index", value ? value->line : 1, value ? value->column : 1, "missing index");
+  if (!macho_emit_value_to_reg(text, fun, value->left, 10, frame_size, ctx, diag)) return false;
+  macho_emit_cmp_w(text, 10, 20);
+  size_t in_range = macho_emit_b_cond_placeholder(text, 3); // unsigned lower
+  macho_emit_movz_w(text, 8, 0);
+  macho_emit_store_local_w(text, fun, 8, local->index, 0, frame_size);
+  macho_emit_store_local_x(text, fun, 8, local->index, 8, frame_size);
+  macho_emit_store_local_w(text, fun, 8, local->index, 16, frame_size);
+  size_t end_patch = macho_emit_b_placeholder(text);
+  macho_patch_cond19(text, in_range, text->len);
+
+  macho_emit_add_x_reg_lsl(text, 12, 21, 10, 3);
+  macho_emit_ldr_x_imm(text, 12, 12, 0);
+  macho_emit_movz_w(text, 10, 0);
+  size_t loop_start = text->len;
+  macho_emit_add_x_reg(text, 13, 12, 10);
+  macho_emit_ldrb_w(text, 14, 13);
+  size_t done_patch = macho_emit_cbz_w_placeholder(text, 14);
+  macho_emit_add_w_imm(text, 10, 10, 1);
+  size_t loop_patch = macho_emit_b_placeholder(text);
+  macho_patch_branch26(text, loop_patch, loop_start);
+  macho_patch_cond19(text, done_patch, text->len);
+
+  macho_emit_movz_w(text, 8, 1);
+  macho_emit_store_local_w(text, fun, 8, local->index, 0, frame_size);
+  macho_emit_store_local_x(text, fun, 12, local->index, 8, frame_size);
+  macho_emit_store_local_w(text, fun, 10, local->index, 16, frame_size);
+  macho_patch_branch26(text, end_patch, text->len);
+  return true;
+}
+
 static bool macho_emit_instr(ZBuf *text, const IrFunction *fun, const IrInstr *instr, unsigned frame_size, MachOEmitContext *ctx, ZDiag *diag) {
   if (instr->kind == IR_INSTR_WORLD_WRITE) {
     return macho_emit_world_write(text, fun, instr, frame_size, ctx, diag);
@@ -959,6 +1031,9 @@ static bool macho_emit_instr(ZBuf *text, const IrFunction *fun, const IrInstr *i
       return true;
     }
     if (fun->locals[instr->local_index].type == IR_TYPE_MAYBE_BYTE_VIEW) {
+      if (instr->value && instr->value->kind == IR_VALUE_ARGS_GET) {
+        return macho_emit_args_get_to_local(text, fun, instr->value, &fun->locals[instr->local_index], frame_size, ctx, diag);
+      }
       if (!instr->value || instr->value->kind != IR_VALUE_ALLOC_BYTES || instr->value->local_index >= fun->local_len || fun->locals[instr->value->local_index].type != IR_TYPE_ALLOC) return macho_diag_at(diag, "direct AArch64 Mach-O allocation source is invalid", instr->line, instr->column, "invalid allocation");
       if (!macho_emit_value_to_reg(text, fun, instr->value->left, 10, frame_size, ctx, diag)) return false;
       macho_emit_load_local_w(text, fun, 8, instr->value->local_index, 12, frame_size);
@@ -1365,6 +1440,8 @@ static const IrFunction *macho_find_executable_main(const IrProgram *program, ZD
 }
 
 static size_t macho_emit_exe_start_stub(ZBuf *text) {
+  macho_emit_mov_x(text, 20, 0);
+  macho_emit_mov_x(text, 21, 1);
   size_t patch = macho_emit_b_placeholder(text); // tail-call main so it returns to dyld's LC_MAIN trampoline
   return patch;
 }
