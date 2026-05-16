@@ -4540,7 +4540,24 @@ static bool check_stmt(const Program *program, const Function *fun, const Stmt *
     char expected[128];
     if (!check_lvalue_target(program, target, scope, diag, expected, sizeof(expected))) return false;
     if (!check_assignment_not_borrowed(target, scope, diag)) return false;
-    if (!check_expr_expected(program, stmt->expr, scope, diag, expected)) return false;
+    BorrowOrigins previous_origins = {0};
+    bool restore_reference_origins = target && target->kind == EXPR_IDENT &&
+      (type_is_named_generic(expected, "ref") || type_is_named_generic(expected, "mutref"));
+    if (restore_reference_origins) {
+      scope_copy_borrow_origins(scope, target->text, &previous_origins);
+      scope_clear_borrow_origin(scope, target->text);
+    }
+    if (!check_expr_expected(program, stmt->expr, scope, diag, expected)) {
+      if (restore_reference_origins) {
+        scope_set_borrow_origins(scope, target->text, &previous_origins);
+        borrow_origins_free(&previous_origins);
+      }
+      return false;
+    }
+    if (restore_reference_origins) {
+      scope_set_borrow_origins(scope, target->text, &previous_origins);
+      borrow_origins_free(&previous_origins);
+    }
     const char *actual = expr_type(program, stmt->expr, scope);
     if (!types_compatible(expected, actual)) {
       return set_diag_detail(diag, 3006, "assignment type does not match binding", stmt->line, stmt->column, expected, actual, "assign a compatible value");
