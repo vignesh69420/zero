@@ -1,0 +1,61 @@
+// Simple comprehensive Zero demo
+
+shape Point {
+    x: i32,
+    y: i32,
+}
+
+pub fun main(world: World) -> Void raises {
+    check world.out.write("=== Zero Language Demo ===\n\n")
+    
+    // 1. Basic shapes
+    let p1 = Point { x: 10, y: 20 }
+    let p2 = Point { x: 30, y: 40 }
+    
+    let sum = p1.x + p2.x
+    if sum == 40 {
+        check world.out.write("1. Shapes work\n")
+    }
+    
+    // 2. Encoding
+    let mut buf: [64]u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    
+    let b64 = std.codec.base64Encode(buf, std.mem.span("Zero"))
+    if b64.has {
+        check world.out.write("2. Base64: ")
+        check world.out.write(b64.value)
+        check world.out.write("\n")
+    }
+    
+    // 3. CRC32
+    let crc = std.codec.crc32("test data")
+    if crc > 0 {
+        check world.out.write("3. CRC32 computed\n")
+    }
+    
+    // 4. Time
+    let wall = std.time.wallSeconds()
+    if wall > 1000000000 {
+        check world.out.write("4. Wall clock available\n")
+    }
+    
+    // 5. Random
+    let mut rng = std.rand.seed(42_u32)
+    let r1 = std.rand.nextU32(&mut rng)
+    let r2 = std.rand.nextU32(&mut rng)
+    if r1 != r2 {
+        check world.out.write("5. RNG works\n")
+    }
+    
+    // 6. Crypto
+    let hash = std.crypto.hash32(std.mem.span("data"))
+    if hash > 0 {
+        check world.out.write("6. Cryptographic hash works\n")
+    }
+    
+    check world.out.write("\n=== All features demonstrated ===\n")
+}
+

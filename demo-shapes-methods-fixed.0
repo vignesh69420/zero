@@ -1,0 +1,118 @@
+// Advanced Shapes and Methods Demo
+// Shows constructors, methods, static methods, and generics
+
+shape Point {
+    x: i32,
+    y: i32,
+    
+    fun origin() -> Self {
+        return Point { x: 0, y: 0 }
+    }
+    
+    fun new(x: i32, y: i32) -> Self {
+        return Point { x: x, y: y }
+    }
+    
+    fun magnitude(self: ref<Self>) -> i32 {
+        return (self.x * self.x) + (self.y * self.y)
+    }
+    
+    fun translate(self: mutref<Self>, dx: i32, dy: i32) -> Void {
+        self.x = self.x + dx
+        self.y = self.y + dy
+    }
+}
+
+shape Counter {
+    value: u32,
+    
+    fun increment(self: mutref<Self>) -> Void {
+        self.value = self.value + 1
+    }
+    
+    fun get(self: ref<Self>) -> u32 {
+        return self.value
+    }
+    
+    fun reset(self: mutref<Self>) -> Void {
+        self.value = 0
+    }
+}
+
+shape Box<T> {
+    content: T,
+    
+    fun new(value: T) -> Self {
+        return Box { content: value }
+    }
+    
+    fun get(self: ref<Self>) -> T {
+        return self.content
+    }
+    
+    fun set(self: mutref<Self>, value: T) -> Void {
+        self.content = value
+    }
+}
+
+pub fun main(world: World) -> Void raises {
+    check world.out.write("=== Zero Shapes & Methods Demo ===\n\n")
+    
+    check world.out.write("1. Static Factory Methods:\n")
+    let origin = Point.origin()
+    if origin.x == 0 && origin.y == 0 {
+        check world.out.write("   Point.origin() created (0, 0)\n")
+    }
+    
+    let point = Point.new(3, 4)
+    if point.x == 3 && point.y == 4 {
+        check world.out.write("   Point.new(3, 4) created\n\n")
+    }
+    
+    check world.out.write("2. Instance Methods:\n")
+    let mag = point.magnitude()
+    if mag == 25 {
+        check world.out.write("   magnitude() = 25\n\n")
+    }
+    
+    check world.out.write("3. Mutable Methods:\n")
+    let mut movable = Point.new(10, 20)
+    movable.translate(5, -3)
+    if movable.x == 15 && movable.y == 17 {
+        check world.out.write("   After translate: (15, 17)\n\n")
+    }
+    
+    check world.out.write("4. Counter with Methods:\n")
+    let mut counter = Counter { value: 0 }
+    counter.increment()
+    counter.increment()
+    counter.increment()
+    
+    if counter.get() == 3 {
+        check world.out.write("   After 3 increments: value = 3\n")
+    }
+    
+    counter.reset()
+    if counter.get() == 0 {
+        check world.out.write("   After reset: value = 0\n\n")
+    }
+    
+    check world.out.write("5. Generic Shapes:\n")
+    let mut int_box: Box<i32> = Box.new(42)
+    if int_box.get() == 42 {
+        check world.out.write("   Box<i32> contains 42\n")
+    }
+    
+    int_box.set(100)
+    if int_box.get() == 100 {
+        check world.out.write("   Updated to 100\n")
+    }
+    
+    let mut bool_box: Box<Bool> = Box.new(true)
+    if bool_box.get() == true {
+        check world.out.write("   Box<Bool> works too!\n")
+    }
+    
+    check world.out.write("\n=== Demo completed ===\n")
+}
+

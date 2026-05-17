@@ -1,0 +1,53 @@
+// JSON-based structured logging demo
+// Zero doesn't have traditional logging, but we can build JSON output
+
+use std.codec
+use std.json
+
+shape LogEntry {
+    level: String,
+    message: String,
+    timestamp: u64,
+}
+
+fun logInfo(world: ref<World>, msg: String) -> Void raises {
+    let ts = std.time.wallSeconds()
+    let mut buf: [256]u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    
+    // Build JSON manually (simplified for demo)
+    check world.out.write("{\"level\":\"INFO\",\"message\":\"")
+    check world.out.write(msg)
+    check world.out.write("\",\"timestamp\":")
+    
+    // Convert timestamp to string (simplified)
+    if ts > 1000000000 {
+        check world.out.write("1715000000")
+    } else {
+        check world.out.write("0")
+    }
+    
+    check world.out.write("}\n")
+}
+
+pub fun main(world: World) -> Void raises {
+    check logInfo(&world, "Application started")
+    check logInfo(&world, "Processing data")
+    check logInfo(&world, "Application finished")
+    
+    check world.out.write("\n--- Demo completed ---\n")
+}
