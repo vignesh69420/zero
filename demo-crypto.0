@@ -1,0 +1,82 @@
+// Cryptographic functions demonstration
+// Shows CRC32, HMAC, constant-time comparison
+
+use std.crypto
+use std.codec
+use std.mem
+
+pub fun main(world: World) -> Void raises {
+    check world.out.write("=== Zero Crypto Demo ===\n\n")
+    
+    // 1. CRC32 Checksums
+    check world.out.write("1. CRC32 Checksums:\n")
+    let data1 = std.mem.span("Hello, Zero!")
+    let crc1 = std.crypto.hash32(data1)
+    check world.out.write("   CRC32('Hello, Zero!') = ")
+    if crc1 > 0 {
+        check world.out.write("[computed]\n")
+    }
+    
+    let data2 = std.mem.span("Different data")
+    let crc2 = std.crypto.hash32(data2)
+    if crc1 != crc2 {
+        check world.out.write("   ✓ Different inputs produce different hashes\n\n")
+    }
+    
+    // 2. HMAC (Hash-based Message Authentication Code)
+    check world.out.write("2. HMAC Authentication:\n")
+    let key = std.mem.span("secret-key-123")
+    let message = std.mem.span("authenticate this message")
+    let hmac = std.crypto.hmac32(key, message)
+    
+    check world.out.write("   HMAC(key, message) = ")
+    if hmac > 0 {
+        check world.out.write("[computed]\n")
+    }
+    
+    // Verify with same key and message
+    let hmac_verify = std.crypto.hmac32(key, message)
+    if hmac == hmac_verify {
+        check world.out.write("   ✓ HMAC verification successful\n\n")
+    }
+    
+    // 3. Constant-Time String Comparison (prevents timing attacks)
+    check world.out.write("3. Constant-Time Comparison:\n")
+    let password1 = std.mem.span("super-secret-password")
+    let password2 = std.mem.span("super-secret-password")
+    let password3 = std.mem.span("wrong-password-123456")
+    
+    if std.crypto.constantTimeEql(password1, password2) {
+        check world.out.write("   ✓ Passwords match (constant time)\n")
+    }
+    
+    if std.crypto.constantTimeEql(password1, password3) == false {
+        check world.out.write("   ✓ Passwords differ (constant time)\n\n")
+    }
+    
+    // 4. Secure Random Number Generation
+    check world.out.write("4. Secure Random Numbers:\n")
+    let random1 = std.crypto.secureRandomU32()
+    let random2 = std.crypto.secureRandomU32()
+    
+    if random1 != random2 {
+        check world.out.write("   ✓ Generated cryptographically secure random numbers\n")
+        check world.out.write("   ✓ Each call produces different values\n\n")
+    }
+    
+    // 5. Hex Encoding for Display
+    check world.out.write("5. Hex Encoding:\n")
+    let mut hex_buf: [32]u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    let bytes = std.mem.span("Zero")
+    let hex_result = std.codec.hexEncode(hex_buf, bytes)
+    
+    if hex_result.has {
+        check world.out.write("   Hex('Zero') = ")
+        check world.out.write(hex_result.value)
+        check world.out.write("\n")
+    }
+    
+    check world.out.write("\n=== All crypto operations completed ===\n")
+}
+

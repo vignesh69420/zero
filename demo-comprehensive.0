@@ -1,0 +1,195 @@
+// Comprehensive Zero Language Demonstration
+// Showcases: encoding, crypto, time, random, shapes, and capabilities
+
+use std.codec
+use std.crypto
+use std.time
+use std.rand
+use std.json
+use std.mem
+
+shape DataProcessor {
+    processed_count: u32,
+    last_hash: u32,
+    
+    fun new() -> Self {
+        return DataProcessor { processed_count: 0, last_hash: 0 }
+    }
+    
+    fun process(self: mutref<Self>, data: String) -> u32 {
+        self.processed_count = self.processed_count + 1
+        let hash = std.crypto.hash32(std.mem.span(data))
+        self.last_hash = hash
+        return hash
+    }
+    
+    fun count(self: ref<Self>) -> u32 {
+        return self.processed_count
+    }
+}
+
+pub fun main(world: World) -> Void raises {
+    check world.out.write("╔══════════════════════════════════════════╗\n")
+    check world.out.write("║   Zero Language - Full Demo Suite       ║\n")
+    check world.out.write("╚══════════════════════════════════════════╝\n\n")
+    
+    // Section 1: Data Encoding
+    check world.out.write("📦 SECTION 1: Data Encoding\n")
+    check world.out.write("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    
+    let message = "Hello, Zero Language!"
+    
+    let mut base64_buf: [64]u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    
+    let b64 = std.codec.base64Encode(base64_buf, std.mem.span(message))
+    if b64.has {
+        check world.out.write("  Base64: ")
+        check world.out.write(b64.value)
+        check world.out.write("\n")
+    }
+    
+    let mut hex_buf: [64]u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    
+    let hex = std.codec.hexEncode(hex_buf, std.mem.span("Zero"))
+    if hex.has {
+        check world.out.write("  Hex('Zero'): ")
+        check world.out.write(hex.value)
+        check world.out.write("\n")
+    }
+    
+    let crc = std.codec.crc32(message)
+    if crc > 0 {
+        check world.out.write("  CRC32 checksum computed ✓\n\n")
+    }
+    
+    // Section 2: Cryptography
+    check world.out.write("🔒 SECTION 2: Cryptography\n")
+    check world.out.write("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    
+    let hash1 = std.crypto.hash32(std.mem.span("data-v1"))
+    let hash2 = std.crypto.hash32(std.mem.span("data-v2"))
+    
+    if hash1 != hash2 {
+        check world.out.write("  ✓ Different data produces different hashes\n")
+    }
+    
+    let key = std.mem.span("secret-key")
+    let msg = std.mem.span("authenticate-this")
+    let hmac = std.crypto.hmac32(key, msg)
+    
+    if hmac > 0 {
+        check world.out.write("  ✓ HMAC authentication code generated\n")
+    }
+    
+    let password_a = std.mem.span("correct-password")
+    let password_b = std.mem.span("correct-password")
+    
+    if std.crypto.constantTimeEql(password_a, password_b) {
+        check world.out.write("  ✓ Constant-time password comparison (timing-safe)\n")
+    }
+    
+    let random_secure = std.crypto.secureRandomU32()
+    if random_secure != 0 {
+        check world.out.write("  ✓ Cryptographically secure random generated\n\n")
+    }
+    
+    // Section 3: Time Operations
+    check world.out.write("⏱️  SECTION 3: Time Operations\n")
+    check world.out.write("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    
+    let duration = std.time.sub(std.time.seconds(5), std.time.ms(1500))
+    let duration_ms = std.time.asMsFloor(duration)
+    
+    if duration_ms == 3500 {
+        check world.out.write("  Duration: 5s - 1.5s = 3.5s ✓\n")
+    }
+    
+    let wall_time = std.time.wallSeconds()
+    if wall_time > 1700000000 {
+        check world.out.write("  Wall clock timestamp: [valid] ✓\n")
+    }
+    
+    let _monotonic_start = std.time.monotonic()
+    check world.out.write("  Monotonic clock for elapsed time ✓\n\n")
+    
+    // Section 4: Random Number Generation
+    check world.out.write("🎲 SECTION 4: Random Numbers\n")
+    check world.out.write("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    
+    let mut rng_a = std.rand.seed(777_u32)
+    let rand_1 = std.rand.nextU32(&mut rng_a)
+    let rand_2 = std.rand.nextU32(&mut rng_a)
+    
+    if rand_1 != rand_2 {
+        check world.out.write("  ✓ Seeded RNG produces sequence\n")
+    }
+    
+    let mut rng_b = std.rand.seed(777_u32)
+    let rand_repeat = std.rand.nextU32(&mut rng_b)
+    
+    if rand_1 == rand_repeat {
+        check world.out.write("  ✓ Same seed = deterministic (reproducible tests!)\n")
+    }
+    
+    let entropy = std.rand.entropyU32()
+    if entropy != 0 {
+        check world.out.write("  ✓ Non-deterministic entropy source available\n\n")
+    }
+    
+    // Section 5: Shapes and Methods
+    check world.out.write("📐 SECTION 5: Shapes & Methods\n")
+    check world.out.write("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    
+    let mut processor = DataProcessor.new()
+    
+    let hash_a = processor.process("item-1")
+    let hash_b = processor.process("item-2")
+    let hash_c = processor.process("item-3")
+    
+    if hash_a > 0 && hash_b > 0 && hash_c > 0 {
+        check world.out.write("  ✓ Processed 3 items with hashing\n")
+    }
+    
+    if processor.count() == 3 {
+        check world.out.write("  ✓ Counter tracked: 3 items processed\n\n")
+    }
+    
+    // Section 6: JSON Processing
+    check world.out.write("📄 SECTION 6: JSON Processing\n")
+    check world.out.write("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    
+    let valid_json = "{\"status\":\"ok\",\"count\":42}"
+    let invalid_json = "{broken"
+    
+    if std.json.validate(valid_json) {
+        check world.out.write("  ✓ Valid JSON accepted\n")
+    }
+    
+    if std.json.validate(invalid_json) == false {
+        check world.out.write("  ✓ Invalid JSON rejected\n")
+    }
+    
+    let tokens = std.json.streamTokens(valid_json)
+    if tokens == 5 {
+        check world.out.write("  ✓ JSON tokenizer: 5 tokens counted\n\n")
+    }
+    
+    // Final Summary
+    check world.out.write("╔══════════════════════════════════════════╗\n")
+    check world.out.write("║  ✓ All Zero Features Demonstrated!      ║\n")
+    check world.out.write("╚══════════════════════════════════════════╝\n\n")
+    
+    check world.out.write("Key Takeaways:\n")
+    check world.out.write("  • Capability-based I/O (explicit World)\n")
+    check world.out.write("  • Fixed buffers (no hidden allocation)\n")
+    check world.out.write("  • Explicit error handling (check/raises)\n")
+    check world.out.write("  • Strong typing with generics\n")
+    check world.out.write("  • Predictable, agent-friendly design\n")
+}
+

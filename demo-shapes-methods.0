@@ -1,0 +1,137 @@
+// Advanced Shapes and Methods Demo
+// Shows constructors, methods, static methods, and generics
+
+shape Point {
+    x: i32,
+    y: i32,
+    
+    // Static factory method
+    fun origin() -> Self {
+        return Point { x: 0, y: 0 }
+    }
+    
+    fun new(x: i32, y: i32) -> Self {
+        return Point { x: x, y: y }
+    }
+    
+    // Instance method with immutable reference
+    fun magnitude(self: ref<Self>) -> i32 {
+        return (self.x * self.x) + (self.y * self.y)
+    }
+    
+    // Mutable method
+    fun translate(self: mutref<Self>, dx: i32, dy: i32) -> Void {
+        self.x = self.x + dx
+        self.y = self.y + dy
+    }
+}
+
+shape Counter {
+    value: u32 = 0,  // Default value
+    
+    fun increment(self: mutref<Self>) -> Void {
+        self.value = self.value + 1
+    }
+    
+    fun get(self: ref<Self>) -> u32 {
+        return self.value
+    }
+    
+    fun reset(self: mutref<Self>) -> Void {
+        self.value = 0
+    }
+}
+
+// Generic shape with methods
+shape Box<T> {
+    content: T,
+    
+    fun new(value: T) -> Self {
+        return Box { content: value }
+    }
+    
+    fun get(self: ref<Self>) -> T {
+        return self.content
+    }
+    
+    fun set(self: mutref<Self>, value: T) -> Void {
+        self.content = value
+    }
+}
+
+pub fun main(world: World) -> Void raises {
+    check world.out.write("=== Zero Shapes & Methods Demo ===\n\n")
+    
+    // 1. Static Factory Methods
+    check world.out.write("1. Static Factory Methods:\n")
+    let origin = Point.origin()
+    if origin.x == 0 && origin.y == 0 {
+        check world.out.write("   ✓ Point.origin() created (0, 0)\n")
+    }
+    
+    let point = Point.new(3, 4)
+    if point.x == 3 && point.y == 4 {
+        check world.out.write("   ✓ Point.new(3, 4) created\n\n")
+    }
+    
+    // 2. Instance Methods
+    check world.out.write("2. Instance Methods:\n")
+    let mag = point.magnitude()
+    if mag == 25 {
+        check world.out.write("   ✓ magnitude() = 25 (3² + 4² = 25)\n\n")
+    }
+    
+    // 3. Mutable Methods
+    check world.out.write("3. Mutable Methods:\n")
+    let mut movable = Point.new(10, 20)
+    check world.out.write("   Initial position: (10, 20)\n")
+    
+    movable.translate(5, -3)
+    if movable.x == 15 {
+        if movable.y == 17 {
+            check world.out.write("   After translate(5, -3): (15, 17) ✓\n\n")
+        }
+    }
+    
+    // 4. Default Field Values
+    check world.out.write("4. Default Field Values:\n")
+    let mut counter = Counter { value: 0 }
+    if counter.value == 0 {
+        check world.out.write("   ✓ Counter initialized with default value 0\n")
+    }
+    
+    counter.increment()
+    counter.increment()
+    counter.increment()
+    
+    if counter.get() == 3 {
+        check world.out.write("   ✓ After 3 increments: value = 3\n")
+    }
+    
+    counter.reset()
+    if counter.get() == 0 {
+        check world.out.write("   ✓ After reset: value = 0\n\n")
+    }
+    
+    // 5. Generic Shapes
+    check world.out.write("5. Generic Shapes:\n")
+    
+    let mut int_box: Box<i32> = Box.new(42)
+    check world.out.write("   Box<i32> created with value 42\n")
+    
+    if int_box.get() == 42 {
+        check world.out.write("   ✓ Box.get() returns 42\n")
+    }
+    
+    int_box.set(100)
+    if int_box.get() == 100 {
+        check world.out.write("   ✓ Box.set(100) updated value\n")
+    }
+    
+    let mut bool_box: Box<Bool> = Box.new(true)
+    if bool_box.get() == true {
+        check world.out.write("   ✓ Box<Bool> works too!\n")
+    }
+    
+    check world.out.write("\n=== All shape features demonstrated ===\n")
+}

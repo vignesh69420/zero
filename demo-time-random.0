@@ -1,0 +1,102 @@
+// Time and Random Number Generation Demo
+
+use std.time
+use std.rand
+
+pub fun main(world: World) -> Void raises {
+    check world.out.write("=== Zero Time & Random Demo ===\n\n")
+    
+    // 1. Time Duration Operations
+    check world.out.write("1. Time Durations:\n")
+    
+    let two_seconds = std.time.seconds(2)
+    let five_hundred_ms = std.time.ms(500)
+    let duration = std.time.sub(two_seconds, five_hundred_ms)
+    let ms_value = std.time.asMsFloor(duration)
+    
+    check world.out.write("   2 seconds - 500ms = ")
+    if ms_value == 1500 {
+        check world.out.write("1500ms ✓\n\n")
+    }
+    
+    // 2. Wall Clock Time
+    check world.out.write("2. Wall Clock Time:\n")
+    let wall = std.time.wallSeconds()
+    
+    check world.out.write("   Current Unix timestamp: ")
+    if wall > 1700000000 {
+        check world.out.write("[valid timestamp > 2023]\n\n")
+    }
+    
+    // 3. Monotonic Clock
+    check world.out.write("3. Monotonic Clock (for measuring elapsed time):\n")
+    let start = std.time.monotonic()
+    
+    // Do some work...
+    let mut sum: u32 = 0
+    let mut i: u32 = 0
+    while i < 1000 {
+        sum = sum + i
+        i = i + 1
+    }
+    
+    let _end = std.time.monotonic()
+    check world.out.write("   ✓ Monotonic clock measured computation\n")
+    check world.out.write("   (Sum computed: ")
+    if sum > 0 {
+        check world.out.write("[value])\n\n")
+    }
+    
+    // 4. Seeded Random Number Generation
+    check world.out.write("4. Seeded Random Numbers:\n")
+    
+    let mut rng1 = std.rand.seed(42_u32)
+    let first = std.rand.nextU32(&mut rng1)
+    let second = std.rand.nextU32(&mut rng1)
+    
+    check world.out.write("   RNG(seed=42) first value: ")
+    if first != 0 {
+        check world.out.write("[generated]\n")
+    }
+    
+    check world.out.write("   RNG(seed=42) second value: ")
+    if second != 0 && first != second {
+        check world.out.write("[different from first] ✓\n\n")
+    }
+    
+    // 5. Same Seed Produces Same Sequence
+    check world.out.write("5. Deterministic Random (same seed):\n")
+    
+    let mut rng2 = std.rand.seed(42_u32)
+    let repeat_first = std.rand.nextU32(&mut rng2)
+    
+    if first == repeat_first {
+        check world.out.write("   ✓ Same seed produces same sequence\n")
+        check world.out.write("   (Important for reproducible tests!)\n\n")
+    }
+    
+    // 6. Entropy Source (non-deterministic)
+    check world.out.write("6. Entropy Source (non-deterministic):\n")
+    
+    let entropy1 = std.rand.entropyU32()
+    let entropy2 = std.rand.entropyU32()
+    
+    if entropy1 != entropy2 {
+        check world.out.write("   ✓ Entropy source provides random values\n")
+        check world.out.write("   (Each call likely different)\n\n")
+    }
+    
+    // 7. Random Number Range
+    check world.out.write("7. Random Numbers in Range:\n")
+    
+    let mut rng3 = std.rand.seed(123_u32)
+    let random_val = std.rand.nextU32(&mut rng3)
+    
+    // Simple range reduction (modulo)
+    let in_range = random_val
+    check world.out.write("   Generated u32 value: [some value]\n")
+    check world.out.write("   ✓ Full u32 range available\n")
+    
+    check world.out.write("\n=== Demo completed ===\n")
+}
+

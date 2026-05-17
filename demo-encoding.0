@@ -1,0 +1,125 @@
+// Data encoding demonstration
+// Shows Base64, Hex, URL encoding, and JSON
+
+use std.codec
+use std.json
+use std.mem
+
+pub fun main(world: World) -> Void raises {
+    check world.out.write("=== Zero Data Encoding Demo ===\n\n")
+    
+    // 1. Base64 Encoding
+    check world.out.write("1. Base64 Encoding:\n")
+    let mut b64_buf: [64]u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    
+    let data = std.mem.span("Hello, Zero!")
+    let b64_result = std.codec.base64Encode(b64_buf, data)
+    
+    if b64_result.has {
+        check world.out.write("   Input: 'Hello, Zero!'\n")
+        check world.out.write("   Base64: ")
+        check world.out.write(b64_result.value)
+        check world.out.write("\n\n")
+    }
+    
+    // 2. Hexadecimal Encoding
+    check world.out.write("2. Hexadecimal Encoding:\n")
+    let mut hex_buf: [64]u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    
+    let bytes = std.mem.span("ABC123")
+    let hex_result = std.codec.hexEncode(hex_buf, bytes)
+    
+    if hex_result.has {
+        check world.out.write("   Input: 'ABC123'\n")
+        check world.out.write("   Hex: ")
+        check world.out.write(hex_result.value)
+        check world.out.write("\n\n")
+    }
+    
+    // 3. URL Encoding
+    check world.out.write("3. URL Encoding:\n")
+    let mut url_buf: [64]u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    
+    let url_input = "hello world & stuff"
+    let url_result = std.codec.urlEncode(url_buf, url_input)
+    
+    if url_result.has {
+        check world.out.write("   Input: 'hello world & stuff'\n")
+        check world.out.write("   URL-encoded: ")
+        check world.out.write(url_result.value)
+        check world.out.write("\n\n")
+    }
+    
+    // 4. CRC32 Checksums
+    check world.out.write("4. CRC32 Checksums:\n")
+    let crc_data = "The quick brown fox"
+    let crc = std.codec.crc32(crc_data)
+    
+    if crc > 0 {
+        check world.out.write("   Input: 'The quick brown fox'\n")
+        check world.out.write("   CRC32: [computed hash]\n\n")
+    }
+    
+    // 5. Varint Encoding (variable-length integers)
+    check world.out.write("5. Varint Encoding:\n")
+    let small_len = std.codec.encodedVarintLen(127)
+    let large_len = std.codec.encodedVarintLen(16384)
+    
+    check world.out.write("   Varint(127) uses ")
+    if small_len == 1 {
+        check world.out.write("1 byte\n")
+    }
+    
+    check world.out.write("   Varint(16384) uses ")
+    if large_len == 3 {
+        check world.out.write("3 bytes\n")
+    }
+    if large_len > 1 && large_len != 3 {
+        check world.out.write("multiple bytes\n")
+    }
+    check world.out.write("\n")
+    
+    // 6. JSON Validation
+    check world.out.write("6. JSON Processing:\n")
+    
+    let valid_json = "{\"name\":\"zero\",\"version\":1}"
+    let invalid_json = "{broken json"
+    
+    if std.json.validate(valid_json) {
+        check world.out.write("   ✓ Valid JSON validated\n")
+    }
+    
+    if std.json.validate(invalid_json) == false {
+        check world.out.write("   ✓ Invalid JSON rejected\n")
+    }
+    
+    let token_count = std.json.streamTokens("{\"a\":1,\"b\":2}")
+    check world.out.write("   Token count in '{\"a\":1,\"b\":2}': ")
+    if token_count == 5 {
+        check world.out.write("5 tokens\n")
+    }
+    
+    // 7. JSON String Encoding
+    let mut json_buf: [64]u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    let json_str = std.json.writeString(json_buf, "zero language")
+    
+    if json_str.has {
+        check world.out.write("   JSON encode 'zero language': ")
+        check world.out.write(json_str.value)
+        check world.out.write("\n")
+    }
+    
+    check world.out.write("\n=== Encoding demo completed ===\n")
+}
